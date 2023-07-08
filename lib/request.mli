@@ -1,4 +1,9 @@
-type t 
+type t = {
+    meth: string option;
+    url: string option;
+    headers: (string * string) list option;
+    body: string option;
+};; 
 
 val from_string: string -> (t, string) result
 
@@ -13,4 +18,3 @@ val body: t -> string option
 val pp: Format.formatter -> t -> unit
 val show: t -> string
 
-val (??): 'a option -> 'a

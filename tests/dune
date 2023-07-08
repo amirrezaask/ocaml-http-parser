@@ -1,0 +1,6 @@
+(tests 
+  (names simple)
+  (libraries
+     alcotest
+     request
+    ))

@@ -30,7 +30,7 @@ let get_url req s =
 
 let single_header header =
     let* (key, value) = String.lsplit2 ~on:':' header in
-    Ok (key, value)
+    Ok (key, Stdlib.String.trim value)
 ;;
 
 let rec get_headers headers req s =

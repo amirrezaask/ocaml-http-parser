@@ -1,4 +1,4 @@
 (library
     (name request)
-    (libraries base stdio)
+    (libraries base stdio alcotest)
     (preprocess (pps ppx_deriving.show)))
