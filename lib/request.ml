@@ -5,7 +5,7 @@ type t = {
     url: string option;
     headers: (string * string) list option;
     body: string option;
-}
+} [@@deriving show]
 
 let (let>) res f =
     match res with
@@ -24,7 +24,7 @@ let get_method req s =
 ;;
 
 let get_url req s =
-    let* (url, tl) =  String.lsplit2 ~on:' ' s in
+    let* (url, tl) =  String.lsplit2 ~on:'\n' s in
     Ok ({ req with url = Some url }, tl)
 ;;
 
@@ -50,7 +50,6 @@ let rec get_headers headers req s =
         end
 
 ;;
-
 let get_body req s = Ok({ req with body = Some s}, "") ;;
 
 let from_string s =
@@ -60,3 +59,9 @@ let from_string s =
     let> (req, s) = get_headers [] req s in
     let> (req, _) = get_body req s in
     Ok req
+
+
+let meth req = req.meth;;
+let url req = req.url;;
+let headers req = req.headers;;
+let body req = req.body;;
