@@ -1,51 +1,62 @@
 open Base;;
 
 type t = {
-    meth: string;
-    url: string;
-    headers: (string * string) list;
-    body: string;
-};;
+    meth: string option;
+    url: string option;
+    headers: (string * string) list option;
+    body: string option;
+}
 
-let get_method s =
-    match String.lsplit2 ~on:' ' s with
-        | Some (meth,tl) -> Ok (meth, tl)
-        | _ -> Error "method cannot be parsed"
+let (let>) res f =
+    match res with
+    | Ok v -> f v
+    | Error err -> Error err
+;;
+let (let*) op f =
+    match op with
+    | Some v -> f v
+    | None -> Error "none"
 ;;
 
-let get_url s =
-    match String.lsplit2 ~on:'\n' s with
-        | Some (meth,tl) -> Ok (meth, tl)
-        | _ -> Error "url cannot be parsed"
+let get_method req s =
+    let* (meth, tl) =  String.lsplit2 ~on:' ' s in
+    Ok ({ req with meth = Some meth }, tl)
+;;
+
+let get_url req s =
+    let* (url, tl) =  String.lsplit2 ~on:' ' s in
+    Ok ({ req with url = Some url }, tl)
 ;;
 
 let single_header header =
-    match (String.lsplit2 ~on:':' header) with
-    | Some(key, value) -> Ok (key, value)
-    | _ -> Error "single header cannot be parsed"
+    let* (key, value) = String.lsplit2 ~on:':' header in
+    Ok (key, value)
 ;;
 
-let rec get_headers headers s =
+let rec get_headers headers req s =
     match String.lsplit2 ~on:'\n' s with
-       | Some("", tl) -> Ok (headers, tl)
-       | Some(header, tl) -> (match single_header header with
-           | Ok hd  -> get_headers (hd :: headers) tl
-           | Error msg -> Error msg)
-       | None -> (match String.lsplit2 ~on:':' s with
-          | Some hd -> Ok (hd :: headers, "")
-          | _ -> Error "error")
+    | Some("", tl) -> Ok ({ req with headers = Some headers }, tl)
+    | Some(header, tl) ->
+        begin
+            match single_header header with
+            | Ok hd  -> get_headers (hd :: headers) req tl
+            | Error msg -> Error msg
+        end
+    | None ->
+        begin
+            match String.lsplit2 ~on:':' s with
+            | Some hd -> Ok ({ req with headers =  Some (hd :: headers) }, "")
+            | _ -> Error "error"
+        end
+
 ;;
 
-let get_body s = Ok(s, "");;
+let get_body req s = Ok({ req with body = Some s}, "") ;;
 
 let from_string s =
-    match get_method s with
-    | Ok (meth, s) -> (match get_url s with
-        | Ok (url, s) -> (match get_headers [] s with
-            | Ok (headers, s) -> (match get_body s with
-                | Ok (body, _) -> Ok { meth = meth; url = url; headers = headers; body = body }
-                | Error msg -> Error msg)
-            | Error msg -> Error msg)
-        | Error msg -> Error msg)
-    | Error msg -> Error msg
-
+    let req = { meth = None; url = None; headers = None; body = None } in
+    let> (req, s) = get_method req s in
+    let> (req, s) = get_url req s in
+    let> (req, s) = get_headers [] req s in
+    let> (req, _) = get_body req s in
+    Ok req
